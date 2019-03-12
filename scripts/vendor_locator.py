@@ -9,6 +9,7 @@ import tf
 import math
 from enum import Enum
 
+food_options = ['dog', 'cat', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'pizza', 'donut', 'cake']
 object_dict = {}
 
 def object_detected_callback(msg):
@@ -17,13 +18,15 @@ def object_detected_callback(msg):
     (trans1, rot1) = trans_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
     global object_dict
     if msg.confidence > 0.90:
-        if (msg.name == "cat"):
-            #theta = tf.transformations.euler_from_quaternion(rot1)[2]
-            object_dict["cat"] = (trans1, rot1)
-        if (msg.name == "dog"):
-            #theta = tf.transformations.euler_from_quaternion(rot1)[2]
-            rospy.loginfo("SAW A DOG")
-            object_dict["dog"] = (trans1, rot1)
+        if msg.name in food_options:
+            object_dict[msg.name] = (trans1, rot1)
+    #     if (msg.name == "cat"):
+    #         #theta = tf.transformations.euler_from_quaternion(rot1)[2]
+    #         object_dict["cat"] = (trans1, rot1)
+    #     if (msg.name == "dog"):
+    #         #theta = tf.transformations.euler_from_quaternion(rot1)[2]
+    #         rospy.loginfo("SAW A DOG")
+    #         object_dict["dog"] = (trans1, rot1)
 
 if __name__ == '__main__':
 
@@ -43,9 +46,11 @@ if __name__ == '__main__':
     obj_broadcaster = tf.TransformBroadcaster()
 
     # Subscribers
-    # Cat subscriber
-    rospy.Subscriber('/detector/cat', DetectedObject, object_detected_callback)
-    rospy.Subscriber('/detector/dog', DetectedObject, object_detected_callback)
+    # Create subscribers
+    for food in food_options:
+        rospy.Subscriber('detector/' + food, DetectedObject, object_detected_callback)
+    # rospy.Subscriber('/detector/cat', DetectedObject, object_detected_callback)
+    # rospy.Subscriber('/detector/dog', DetectedObject, object_detected_callback)
 
     rospy.loginfo("VENDOR LOCATOR INITIALIZED")
 
