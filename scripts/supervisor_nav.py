@@ -102,6 +102,12 @@ class Supervisor:
                     nav_pose_origin.pose.orientation.w)
             euler = tf.transformations.euler_from_quaternion(quaternion)
             self.theta_g = euler[2]
+            rospy.loginfo("Setting goal to be %f, %f, %f", self.x_g, self.y_g, self.theta_g)
+            rospy.loginfo("Setting to stop")
+            cmd_msg = Twist()
+            cmd_msg.linear.x = 0
+            cmd_msg.angular.z = 0
+            self.cmd_vel_publisher.publish(cmd_msg)
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             pass
         self.mode = Mode.NAV
@@ -130,7 +136,7 @@ class Supervisor:
         pose_g_msg.x = self.x_g
         pose_g_msg.y = self.y_g
         pose_g_msg.theta = self.theta_g
-
+        print("Publishing pose")
         self.pose_goal_publisher.publish(pose_g_msg)
 
     def nav_to_pose(self):
@@ -140,13 +146,14 @@ class Supervisor:
         nav_g_msg.x = self.x_g
         nav_g_msg.y = self.y_g
         nav_g_msg.theta = self.theta_g
-
+        #print("Publishing nav")
         self.nav_goal_publisher.publish(nav_g_msg)
 
     def stay_idle(self):
         """ sends zero velocity to stay put """
 
         vel_g_msg = Twist()
+        #print("Idling")
         self.cmd_vel_publisher.publish(vel_g_msg)
 
     def close_to(self,x,y,theta):
@@ -156,7 +163,7 @@ class Supervisor:
 
     def init_stop_sign(self):
         """ initiates a stop sign maneuver """
-
+        #print("initiating stop sign")
         self.stop_sign_start = rospy.get_rostime()
         self.mode = Mode.STOP
 
@@ -227,6 +234,7 @@ class Supervisor:
             if self.close_to(self.x_g,self.y_g,self.theta_g):
                 self.mode = Mode.IDLE
             else:
+                #rospy.loginfo("Trying to nav to %f, %f, %f", self.x_g, self.y_g, self.theta_g)
                 self.nav_to_pose()
 
         else:

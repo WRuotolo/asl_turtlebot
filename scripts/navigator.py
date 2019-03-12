@@ -26,7 +26,7 @@ START_POS_THRESH = .2
 # thereshold in theta to start moving forward when path following
 THETA_START_THRESH = 0.09
 # P gain on orientation before start
-THETA_START_P = 1
+THETA_START_P = 0.2
 
 # maximum velocity
 V_MAX = .2
@@ -95,6 +95,7 @@ class Navigator:
         self.x_g = data.x
         self.y_g = data.y
         self.theta_g = data.theta
+        rospy.loginfo("Got nav command. About to run navigator")
         self.run_navigator()
 
     def map_md_callback(self, msg):
@@ -116,12 +117,14 @@ class Navigator:
             self.occupancy_updated = True
 
     def close_to_end_location(self):
+        #rospy.loginfo("Close to end location")
         return (abs(self.x-self.x_g)<END_POS_THRESH and abs(self.y-self.y_g)<END_POS_THRESH)
 
     def snap_to_grid(self, x):
         return (self.plan_resolution*round(x[0]/self.plan_resolution), self.plan_resolution*round(x[1]/self.plan_resolution))
 
     def close_to_start_location(self):
+        #rospy.loginfo("Close to start location")
         if len(self.current_plan)>0:
             snapped_current = self.snap_to_grid([self.x, self.y])
             snapped_start = self.snap_to_grid(self.current_plan_start_loc)
@@ -149,7 +152,7 @@ class Navigator:
 
         # if close to the goal, use the pose_controller instead
         if self.close_to_end_location():
-            rospy.loginfo("Navigator: Close to nav goal using pose controller")
+            #rospy.loginfo("Navigator: Close to nav goal using pose controller")
             pose_g_msg = Pose2D()
             pose_g_msg.x = self.x_g
             pose_g_msg.y = self.y_g
@@ -171,8 +174,12 @@ class Navigator:
             problem = AStar(state_min,state_max,x_init,x_goal,self.occupancy,self.plan_resolution)
 
             rospy.loginfo("Navigator: Computing navigation plan")
+            rospy.loginfo("Self at %f %f %f", self.x, self.y, self.theta)
+            rospy.loginfo("Goal is %f %f %f", self.x_g, self.y_g, self.theta_g)
             if problem.solve():
+                rospy.loginfo("There is a path")
                 if len(problem.path) > 3:
+                    rospy.loginfo("Computing splines")
                     # cubic spline interpolation requires 4 points
                     self.current_plan = problem.path
                     self.current_plan_start_time = rospy.get_rostime()
@@ -217,13 +224,25 @@ class Navigator:
                     rospy.logwarn("Navigator: Path too short, not updating")
             else:
                 rospy.logwarn("Navigator: Could not find path")
+                pose_g_msg = Pose2D()
+                pose_g_msg.x = self.x
+                pose_g_msg.y = self.y
+                self.x_g = self.x
+                self.y_g = self.y
+                self.theta_g = self.theta
+                pose_g_msg.theta = self.theta
+                self.nav_pose_pub.publish(pose_g_msg)
                 self.current_plan = []
+                self.V_prev = 0
+                return
 
         # if we have a path, execute it (we need at least 3 points for this controller)
         if len(self.current_plan) > 3:
-
+            rospy.loginfo("Executing path")
             # if currently not moving, first line up with the plan
             if self.V_prev == 0:
+                rospy.loginfo("Currently stopped. Trying to go to path")
+                t_path_init = (rospy.get_rostime()-self.current_plan_start_time).to_sec()
                 theta_init = np.arctan2(self.current_plan[1][1]-self.current_plan[0][1],self.current_plan[1][0]-self.current_plan[0][0])
                 theta_err = theta_init-self.theta
                 if abs(theta_err)>THETA_START_THRESH:

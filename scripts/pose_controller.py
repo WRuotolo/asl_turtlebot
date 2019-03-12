@@ -10,8 +10,8 @@ from numpy import linalg
 from utils import wrapToPi
 
 # control gains
-K1 = 0.4
-K2 = 0.8
+K1 = 0.9
+K2 = 1.2
 K3 = 0.8
 
 # tells the robot to stay still
@@ -52,7 +52,6 @@ class PoseController:
         self.y_g = 0.0
         self.theta_g = 0.0
 
-        
 
         # time last pose command was received
         self.cmd_pose_time = rospy.get_rostime()
@@ -67,8 +66,7 @@ class PoseController:
         # create a subscriber that receives Pose2D messages and
         # calls cmd_pose_callback. It should subscribe to '/cmd_pose'
 
-
-
+        rospy.Subscriber("/cmd_pose", Pose2D, self.cmd_pose_callback)
 
         ######### END OF YOUR CODE ##########
 
@@ -92,8 +90,9 @@ class PoseController:
         ######### YOUR CODE HERE ############
         # fill out cmd_pose_callback
 
-
-
+        self.x_g = data.x
+        self.y_g = data.y
+        self.theta_g = data.theta
 
         ######### END OF YOUR CODE ##########
         self.cmd_pose_time = rospy.get_rostime()
@@ -120,9 +119,32 @@ class PoseController:
             # robot's desired state is self.x_g, self.y_g, self.theta_g
             # fill out cmd_x_dot = ... cmd_theta_dot = ...
 
+            xg = self.x_g
+            yg = self.y_g
+            thg = self.theta_g
 
+            rho = np.sqrt((self.x-xg)**2+(self.y-yg)**2)
+            gamma = wrapToPi(np.arctan2(yg-self.y,xg-self.x))
+            alpha = wrapToPi(gamma - self.theta)
+            delta = wrapToPi(gamma - thg)
 
+            V = K1*rho*np.cos(alpha)
+            if np.absolute(alpha)<0.001:
+                om = K2*alpha + (K1*np.sinc(alpha)*np.cos(alpha))*(alpha + K3*delta)
+            else:
+                om = K2*alpha + (K1*np.sin(alpha)*np.cos(alpha)/alpha)*(alpha + K3*delta)
 
+            if V>0.5:
+                V=0.5
+            elif V<-0.5:
+                V=-0.5
+            if om>1:
+                om=1
+            elif om<-1:
+                om=-1
+
+            cmd_x_dot = V
+            cmd_theta_dot = om
 
             ######### END OF YOUR CODE ##########
 
