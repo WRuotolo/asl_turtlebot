@@ -38,13 +38,13 @@ W_MAX = .4
 V_DES = 0.12
 
 # gains of the path follower
-KPX = .5
-KPY = .5
-KDX = 1.5
-KDY = 1.5
+KPX = 1.0
+KPY = 1.0
+KDX = .1
+KDY = .1
 
 # smoothing condition (see splrep documentation)
-SMOOTH = .01
+SMOOTH = 1.0
 
 class Navigator:
 
@@ -209,8 +209,8 @@ class Navigator:
                         path_y.append(self.current_plan[i+1][1])
 
                     # interpolate the path with cubic spline
-                    self.path_x_spline = scipy.interpolate.splrep(path_t, path_x, k=3, s=SMOOTH)
-                    self.path_y_spline = scipy.interpolate.splrep(path_t, path_y, k=3, s=SMOOTH)
+                    self.path_x_spline = scipy.interpolate.splrep(path_t, path_x, k=2, s=SMOOTH)
+                    self.path_y_spline = scipy.interpolate.splrep(path_t, path_y, k=2, s=SMOOTH)
                     self.path_tf = path_t[-1]
 
                     # to inspect the interpolation and smoothing
