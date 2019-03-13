@@ -382,7 +382,10 @@ class Supervisor:
             picked_obj = self.delivery_obj_names[self.obj_idx]
 
             if picked_obj not in self.picked_up:
-                self.picked_up += ',' + picked_obj
+                if self.picked_up == '':
+                    self.picked_up += picked_obj
+                else:
+                    self.picked_up += ',' + picked_obj
 
             if self.obj_idx == (self.obj_tot-1):
                 self.mode = Mode.DEL_NAV_HOME
@@ -412,7 +415,7 @@ class Supervisor:
             raise Exception('This mode is not supported: %s'
                 % str(self.mode))
 
-       self.picked_publisher(self.picked_up) # constantly publish picked up items
+        self.picked_publisher.publish(self.picked_up) # constantly publish picked up items
 
 
     def run(self):
