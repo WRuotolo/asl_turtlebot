@@ -17,16 +17,9 @@ def object_detected_callback(msg):
     # If new object: mark location and add to publish list
     (trans1, rot1) = trans_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
     global object_dict
-    if msg.confidence > 0.90:
+    if msg.confidence > 0.70:
         if msg.name in food_options:
             object_dict[msg.name] = (trans1, rot1)
-    #     if (msg.name == "cat"):
-    #         #theta = tf.transformations.euler_from_quaternion(rot1)[2]
-    #         object_dict["cat"] = (trans1, rot1)
-    #     if (msg.name == "dog"):
-    #         #theta = tf.transformations.euler_from_quaternion(rot1)[2]
-    #         rospy.loginfo("SAW A DOG")
-    #         object_dict["dog"] = (trans1, rot1)
 
 def location_callback(msg):
     (trans, rot) = trans_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
@@ -63,15 +56,6 @@ if __name__ == '__main__':
     # Main loop
     while not rospy.is_shutdown():
         for object_name, position in object_dict.items():
-            """
-            if (object_name == "cat"):
-                cat_broadcaster.sendTransform(position[0], position[1], rospy.Time(0), object_name, "/map")
-                rospy.loginfo("VENDOR BROADCASTED: " + object_name)
-                rospy.loginfo("VENDOR BROADCASTED: " + str(position))
-            if (object_name == "dog"):
-                dog_broadcaster.sendTransform(position[0], position[1], rospy.Time(0), object_name, "/map")
-                rospy.loginfo("VENDOR BROADCASTED: " + object_name)
-            """
             rospy.loginfo("VENDOR BROADCASTED: " + object_name)
             obj_broadcaster.sendTransform(position[0], position[1], rospy.Time(0), object_name, "/map")
             rospy.sleep(0.1)
