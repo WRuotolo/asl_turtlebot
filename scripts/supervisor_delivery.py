@@ -7,6 +7,7 @@ from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
 from asl_turtlebot.msg import DetectedObject
 import tf
 import math
+import numpy as np
 from enum import Enum
 import time
 
@@ -84,6 +85,12 @@ class Supervisor:
         self.delivery_obj_names = []
         self.obj_idx = 0
         self.obj_tot = 0
+
+        self.estop = False
+        self.following_init_time = 0.0
+
+        self.following_init_time = 0.0
+
         # subscribers
         # stop sign detector
         rospy.Subscriber('/detector/stop_sign', DetectedObject, self.stop_sign_detected_callback)
@@ -96,7 +103,21 @@ class Supervisor:
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)
         rospy.Subscriber('/state', Bool, self.state_callback)
         rospy.Subscriber('/delivery_request', String, self.delivery_request_callback)
+        rospy.Subscriber('/detector/cat', DetectedObject, self.dogCallback)
         rospy.Subscriber('/detector/dog', DetectedObject, self.dogCallback)
+        rospy.Subscriber('/emergency_stop', Bool, self.estopCallback)
+        self.nav_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+
+    def estopCallback(self, msg):
+
+    	if self.explore:
+    		self.mode = Mode.EXP_IDLE
+    	else:
+    		self.mode = Mode.DEL_IDLE
+    	cmd_msg = Twist()
+        cmd_msg.linear.x = 0.0
+        cmd_msg.angular.z = 0.0
+        self.nav_vel_pub.publish(cmd_msg)
 
     def dogCallback(self, data):
     	global distance, cornerx, cornery, cornerdx, cornerdy
@@ -105,7 +126,9 @@ class Supervisor:
     	thetaL = data.thetaleft
     	thetaR = data.thetaright
     	cornery, cornerx, cornerdy, cornerdx = data.corners
-    	self.mode = Mode.FOLLOW_DOG
+    	if self.explore:
+    		self.mode = Mode.FOLLOW_DOG
+    	self.following_init_time = rospy.get_rostime()
 
     def delivery_request_callback(self, msg):
         self.delivery_obj_names = msg.data.split(',')
@@ -152,8 +175,8 @@ class Supervisor:
                     nav_pose_origin.pose.orientation.w)
             euler = tf.transformations.euler_from_quaternion(quaternion)
             self.theta_g = euler[2]
-            rospy.loginfo("Setting goal to be %f, %f, %f", self.x_g, self.y_g, self.theta_g)
-            rospy.loginfo("Setting to stop")
+            #rospy.loginfo("Setting goal to be %f, %f, %f", self.x_g, self.y_g, self.theta_g)
+            #rospy.loginfo("Setting to stop")
             cmd_msg = Twist()
             cmd_msg.linear.x = 0
             cmd_msg.angular.z = 0
@@ -178,7 +201,7 @@ class Supervisor:
         dist = msg.distance
 
         # if close enough and in nav mode, stop
-        if dist > 0 and dist < STOP_MIN_DIST and self.mode == Mode.NAV:
+        if self.mode == Mode.EXP_NAV:
             self.init_stop_sign()
 
     def go_to_pose(self):
@@ -203,10 +226,12 @@ class Supervisor:
 
     def stay_idle(self):
         """ sends zero velocity to stay put """
-
-        vel_g_msg = Twist()
-        #print("Idling")
-        self.cmd_vel_publisher.publish(vel_g_msg)
+        nav_g_msg = Pose2D()
+        nav_g_msg.x = self.x
+        nav_g_msg.y = self.y
+        nav_g_msg.theta = self.theta
+        #print("Publishing nav")
+        self.nav_goal_publisher.publish(nav_g_msg)
 
     def close_to(self,x,y,theta,pos_eps, theta_eps):
         """ checks if the robot is at a pose within some threshold """
@@ -216,24 +241,24 @@ class Supervisor:
         """ initiates a stop sign maneuver """
         #print("initiating stop sign")
         self.stop_sign_start = rospy.get_rostime()
+        rospy.loginfo("init stop sign")
         self.mode = Mode.STOP
 
     def has_stopped(self):
         """ checks if stop sign maneuver is over """
-
+        rospy.loginfo("checking if stopped")
         return (self.mode == Mode.STOP and (rospy.get_rostime()-self.stop_sign_start)>rospy.Duration.from_sec(STOP_TIME))
         
     def init_crossing(self):
         """ initiates an intersection crossing maneuver """
-
+        rospy.loginfo("init crossing")
         self.cross_start = rospy.get_rostime()
         self.mode = Mode.CROSS
 
     def has_crossed(self):
         """ checks if crossing maneuver is over """
-
+        rospy.loginfo("check crossed")
         return (self.mode == Mode.CROSS and (rospy.get_rostime()-self.cross_start)>rospy.Duration.from_sec(CROSSING_TIME))
-
 
     def nav_to_obj(self, idx):
         #rospy.loginfo("inside nav to obj")
@@ -264,25 +289,23 @@ class Supervisor:
     def follow_dog(self):
     	global distance, cornerx, cornery, cornerdx, cornerdy
     	global thetaL, thetaR
-    	camPose = PoseStamped()
-    	self.trans_broadcast.sendTransform((0.0,0.0,0.0), (0.0, 0.0, 0.0, 1.0), rospy.Time.now(), "/test_tf", "/map")
-    	camPose.header.frame_id = '/base_footprint'
+    	#camPose = PoseStamped()
+    	#self.trans_broadcast.sendTransform((0.0,0.0,0.0), (0.0, 0.0, 0.0, 1.0), rospy.Time.now(), "/test_tf", "/map")
+    	#camPose.header.frame_id = '/base_footprint'
     	#camPose.pose.position.x = 
     	#camPose.pose.position.y = 
-        x_middle = (768/2)-(cornerx+cornerdx/2)
-        d = 1.0
-        try:
-        	t = self.trans_listener.getLatestCommonTime("/map", "/base_footprint")
-        	(translation, rotation) = self.trans_listener.lookupTransform("/map","/base_footprint",t)
-        	th_goal = tf.transformations.euler_from_quaternion(rotation)[2]
-        	self.theta_g = th_goal + np.atan2(x_middle,d)
-        	self.x_g = translation[0]+np.cos(self.theta_g)
-        	self.y_g = translation[1]+np.sin(self.theta_g)
-        	self.go_to_pose()
-      	except: 
-	        #obX_cam = 0.0
-	        #oby_cam = 0.0
-	        rospy.loginfo("cant follow dog")
+        x_middle = cornerx + (cornerdx-cornerx)/2.0
+        delta_theta = np.arctan2(((786.0/2.0)-x_middle)*0.006, 3.0)
+        rospy.loginfo(delta_theta-0.3)
+
+    	t = self.trans_listener.getLatestCommonTime("/map", "/base_footprint")
+    	(translation, rotation) = self.trans_listener.lookupTransform("/map","/base_footprint",t)
+    	th_goal = tf.transformations.euler_from_quaternion(rotation)[2]
+    	self.theta_g = th_goal + delta_theta - 0.3
+    	rospy.loginfo("Curent theta %f goal theta %f", self.theta, self.theta_g)
+    	self.x_g = translation[0]+0.1*np.cos(self.theta_g)
+    	self.y_g = translation[1]+0.1*np.sin(self.theta_g)
+    	self.go_to_pose()
 
 
     def loop(self):
@@ -370,11 +393,13 @@ class Supervisor:
 
         elif self.mode == Mode.FOLLOW_DOG:
         	if self.explore:
-        		self.mode = Mode.EXP_NAV
-        	else:
-        		self.mode = Mode.DEL_NAV_OBJ
-        	self.follow_dog()
-
+	        	if (rospy.get_rostime()-self.following_init_time)>rospy.Duration.from_sec(2):
+	        		self.mode = Mode.EXP_IDLE 
+	        		rospy.loginfo("Stopping following")
+	        	else:
+	        		self.follow_dog()
+	        		rospy.loginfo("Following")
+        	
 
         else:
             raise Exception('This mode is not supported: %s'
