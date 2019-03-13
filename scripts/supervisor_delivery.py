@@ -31,6 +31,10 @@ STOP_MIN_DIST = .5
 # time taken to cross an intersection
 CROSSING_TIME = 3
 
+# dog
+distance, cornerx, cornery, cornerdx, cornerdy = 0.0, 0.0, 0.0, 0.0, 0.0
+thetaL, thetaR = 0.0, 0.0
+
 # state machine modes, not all implemented
 class Mode(Enum):
     EXP_IDLE = 1
@@ -45,6 +49,9 @@ class Mode(Enum):
     DEL_NAV_OBJ = 9
     DEL_NAV_HOME = 10
     DEL_PICKUP = 11
+
+    FOLLOW_DOG = 12
+
     
 print "supervisor settings:\n"
 print "use_gazebo = %s\n" % use_gazebo
@@ -89,6 +96,16 @@ class Supervisor:
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)
         rospy.Subscriber('/state', Bool, self.state_callback)
         rospy.Subscriber('/delivery_request', String, self.delivery_request_callback)
+        rospy.Subscriber('/detector/dog', DetectedObject, self.dogCallback)
+
+    def dogCallback(self, data):
+    	global distance, cornerx, cornery, cornerdx, cornerdy
+    	global thetaL, thetaR
+    	distance = data.distance
+    	thetaL = data.thetaleft
+    	thetaR = data.thetaright
+    	cornery, cornerx, cornerdy, cornerdx = data.corners
+    	self.mode = Mode.FOLLOW_DOG
 
     def delivery_request_callback(self, msg):
         self.delivery_obj_names = msg.data.split(',')
@@ -171,7 +188,7 @@ class Supervisor:
         pose_g_msg.x = self.x_g
         pose_g_msg.y = self.y_g
         pose_g_msg.theta = self.theta_g
-        print("Publishing pose")
+        #print("Publishing pose")
         self.pose_goal_publisher.publish(pose_g_msg)
 
     def nav_to_pose(self):
@@ -231,7 +248,7 @@ class Supervisor:
         nav_g_msg = Pose2D()
         nav_g_msg.x = trans[0]
         nav_g_msg.y = trans[1]
-        nav_g_msg.theta = self.theta
+        nav_g_msg.theta = (self.theta_g + self.theta)/2
         self.nav_goal_publisher.publish(nav_g_msg)
 
     def nav_to_home(self):
@@ -243,6 +260,29 @@ class Supervisor:
         nav_g_msg.y = self.y_g
         nav_g_msg.theta = self.theta_g
         self.nav_goal_publisher.publish(nav_g_msg)
+
+    def follow_dog(self):
+    	global distance, cornerx, cornery, cornerdx, cornerdy
+    	global thetaL, thetaR
+    	camPose = PoseStamped()
+    	self.trans_broadcast.sendTransform((0.0,0.0,0.0), (0.0, 0.0, 0.0, 1.0), rospy.Time.now(), "/test_tf", "/map")
+    	camPose.header.frame_id = '/base_footprint'
+    	#camPose.pose.position.x = 
+    	#camPose.pose.position.y = 
+        x_middle = (768/2)-(cornerx+cornerdx/2)
+        d = 1.0
+        try:
+        	t = self.trans_listener.getLatestCommonTime("/map", "/base_footprint")
+        	(translation, rotation) = self.trans_listener.lookupTransform("/map","/base_footprint",t)
+        	th_goal = tf.transformations.euler_from_quaternion(rotation)[2]
+        	self.theta_g = th_goal + np.atan2(x_middle,d)
+        	self.x_g = translation[0]+np.cos(self.theta_g)
+        	self.y_g = translation[1]+np.sin(self.theta_g)
+        	self.go_to_pose()
+      	except: 
+	        #obX_cam = 0.0
+	        #oby_cam = 0.0
+	        rospy.loginfo("cant follow dog")
 
 
     def loop(self):
@@ -332,6 +372,13 @@ class Supervisor:
                 self.mode = Mode.DEL_IDLE
             else:
                 self.nav_to_home()
+
+        elif self.mode == Mode.FOLLOW_DOG:
+        	if self.explore:
+        		self.mode = Mode.EXP_NAV
+        	else:
+        		self.mode = Mode.DEL_NAV_OBJ
+        	self.follow_dog()
 
 
         else:

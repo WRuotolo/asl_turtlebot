@@ -173,13 +173,13 @@ class Navigator:
             x_goal = self.snap_to_grid((self.x_g, self.y_g))
             problem = AStar(state_min,state_max,x_init,x_goal,self.occupancy,self.plan_resolution)
 
-            rospy.loginfo("Navigator: Computing navigation plan")
-            rospy.loginfo("Self at %f %f %f", self.x, self.y, self.theta)
-            rospy.loginfo("Goal is %f %f %f", self.x_g, self.y_g, self.theta_g)
+            #rospy.loginfo("Navigator: Computing navigation plan")
+            #rospy.loginfo("Self at %f %f %f", self.x, self.y, self.theta)
+            #rospy.loginfo("Goal is %f %f %f", self.x_g, self.y_g, self.theta_g)
             if problem.solve():
-                rospy.loginfo("There is a path")
+                #rospy.loginfo("There is a path")
                 if len(problem.path) > 3:
-                    rospy.loginfo("Computing splines")
+                    #rospy.loginfo("Computing splines")
                     # cubic spline interpolation requires 4 points
                     self.current_plan = problem.path
                     self.current_plan_start_time = rospy.get_rostime()
