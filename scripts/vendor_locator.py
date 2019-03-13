@@ -9,7 +9,7 @@ import tf
 import math
 from enum import Enum
 
-food_options = ['dog', 'cat', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'pizza', 'donut', 'cake']
+food_options = ['dog', 'cup', 'cat', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'pizza', 'donut', 'cake']
 object_dict = {}
 
 def object_detected_callback(msg):
