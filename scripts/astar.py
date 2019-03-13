@@ -235,4 +235,4 @@ if not astar.solve():
     print "No path found"
     exit(0)
 
-astar.plot_path()
+#astar.plot_path()

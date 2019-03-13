@@ -216,13 +216,14 @@ class Supervisor:
         return (self.mode == Mode.CROSS and (rospy.get_rostime()-self.cross_start)>rospy.Duration.from_sec(CROSSING_TIME))
 
 
-    def nav_to_obj(self, obj_idx):
+    def nav_to_obj(self, idx):
         #rospy.loginfo("inside nav to obj")
-        (trans, rot) = self.trans_listener.lookupTransform('/map', self.delivery_obj_names[obj_idx], rospy.Time(0))
+        rospy.loginfo(str(idx))
+        (trans, rot) = self.trans_listener.lookupTransform('/map', self.delivery_obj_names[idx], rospy.Time(0))
         self.x_g = trans[0]
         self.y_g = trans[1]
         self.theta_g = self.theta
-        rospy.loginfo("object ind %f", self.obj_idx)
+        rospy.loginfo("object ind %f", idx)
         rospy.loginfo("x goal %f", self.x_g)
         nav_g_msg = Pose2D()
         nav_g_msg.x = trans[0]
@@ -312,7 +313,7 @@ class Supervisor:
             rospy.loginfo("Sleeping")
             time.sleep(5)
             rospy.loginfo("Done sleeping")
-            if self.obj_idx == self.obj_tot-1:
+            if self.obj_idx == (self.obj_tot-1):
                 self.mode = Mode.DEL_NAV_HOME
             else:
                 self.obj_idx += 1
