@@ -53,7 +53,6 @@ class Mode(Enum):
 
     FOLLOW_DOG = 12
 
-    
 print "supervisor settings:\n"
 print "use_gazebo = %s\n" % use_gazebo
 print "mapping = %s\n" % mapping
@@ -63,6 +62,8 @@ class Supervisor:
     def __init__(self):
         rospy.init_node('turtlebot_supervisor_nav', anonymous=True)
         # initialize variables
+        self.picked_up = '' # items that have been picked up
+
         self.x = 0
         self.y = 0
         self.theta = 0
@@ -73,6 +74,8 @@ class Supervisor:
         self.mode = Mode.EXP_IDLE
         self.last_mode_printed = None
         self.trans_listener = tf.TransformListener()
+        # publisher for picked up items
+        self.picked_publisher = rospy.Publisher('/picked_up', String, queue_size=10)
         # command pose for controller
         self.pose_goal_publisher = rospy.Publisher('/cmd_pose', Pose2D, queue_size=10)
         # nav pose for controller
@@ -164,7 +167,6 @@ class Supervisor:
         origin_frame = "/map" if mapping else "/odom"
         print("rviz command received!")
         try:
-            
             nav_pose_origin = self.trans_listener.transformPose(origin_frame, msg)
             self.x_g = nav_pose_origin.pose.position.x
             self.y_g = nav_pose_origin.pose.position.y
@@ -377,6 +379,11 @@ class Supervisor:
             rospy.loginfo("Sleeping")
             time.sleep(5)
             rospy.loginfo("Done sleeping")
+            picked_obj = self.delivery_obj_names[self.obj_idx]
+
+            if picked_obj not in self.picked_up:
+                self.picked_up += ',' + picked_obj
+
             if self.obj_idx == (self.obj_tot-1):
                 self.mode = Mode.DEL_NAV_HOME
                 self.nav_to_home()
@@ -388,22 +395,24 @@ class Supervisor:
         elif self.mode == Mode.DEL_NAV_HOME:
             if self.close_to(self.x_g, self.y_g, self.theta_g, 0.2, 0.5):
                 self.mode = Mode.DEL_IDLE
+                self.picked_up = '' # drop off groceries at home! good job!
             else:
                 self.nav_to_home()
 
         elif self.mode == Mode.FOLLOW_DOG:
         	if self.explore:
 	        	if (rospy.get_rostime()-self.following_init_time)>rospy.Duration.from_sec(2):
-	        		self.mode = Mode.EXP_IDLE 
+	        		self.mode = Mode.EXP_IDLE
 	        		rospy.loginfo("Stopping following")
 	        	else:
 	        		self.follow_dog()
 	        		rospy.loginfo("Following")
-        	
 
         else:
             raise Exception('This mode is not supported: %s'
                 % str(self.mode))
+
+       self.picked_publisher(self.picked_up) # constantly publish picked up items
 
 
     def run(self):
