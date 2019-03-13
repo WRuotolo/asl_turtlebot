@@ -1,6 +1,6 @@
 <launch>
 
-	<rosparam param="sim">false</rosparam>
+    <rosparam param="sim">false</rosparam>
   	<rosparam param="map">true</rosparam>
   	<rosparam param="rviz">true</rosparam>
   	<rosparam param="use_tf">false</rosparam>

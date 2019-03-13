@@ -26,7 +26,7 @@ START_POS_THRESH = .2
 # thereshold in theta to start moving forward when path following
 THETA_START_THRESH = 0.09
 # P gain on orientation before start
-THETA_START_P = 0.2
+THETA_START_P = 0.5
 
 # maximum velocity
 V_MAX = .2

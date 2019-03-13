@@ -28,6 +28,10 @@ def object_detected_callback(msg):
     #         rospy.loginfo("SAW A DOG")
     #         object_dict["dog"] = (trans1, rot1)
 
+def location_callback(msg):
+    (trans, rot) = trans_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
+    object_dict[msg.data] = (trans, rot)
+
 if __name__ == '__main__':
 
     # Global variables
@@ -51,6 +55,8 @@ if __name__ == '__main__':
         rospy.Subscriber('detector/' + food, DetectedObject, object_detected_callback)
     # rospy.Subscriber('/detector/cat', DetectedObject, object_detected_callback)
     # rospy.Subscriber('/detector/dog', DetectedObject, object_detected_callback)
+
+    rospy.Subscriber('manual_location', String, location_callback)
 
     rospy.loginfo("VENDOR LOCATOR INITIALIZED")
 

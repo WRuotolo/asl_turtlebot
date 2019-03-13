@@ -144,6 +144,8 @@ class Supervisor:
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             pass
         self.mode = Mode.EXP_NAV
+        if not self.explore:
+            self.explore = True
 
     def nav_pose_callback(self, msg):
         self.x_g = msg.x
@@ -218,13 +220,14 @@ class Supervisor:
 
     def nav_to_obj(self, idx):
         #rospy.loginfo("inside nav to obj")
-        rospy.loginfo(str(idx))
+        #rospy.loginfo("index is %d", idx)
         (trans, rot) = self.trans_listener.lookupTransform('/map', self.delivery_obj_names[idx], rospy.Time(0))
         self.x_g = trans[0]
         self.y_g = trans[1]
-        self.theta_g = self.theta
-        rospy.loginfo("object ind %f", idx)
-        rospy.loginfo("x goal %f", self.x_g)
+        euler = tf.transformations.euler_from_quaternion(rot)
+        self.theta_g = euler[2]
+        #rospy.loginfo("object ind %f", idx)
+        #rospy.loginfo("x goal %f", self.x_g)
         nav_g_msg = Pose2D()
         nav_g_msg.x = trans[0]
         nav_g_msg.y = trans[1]
@@ -232,9 +235,9 @@ class Supervisor:
         self.nav_goal_publisher.publish(nav_g_msg)
 
     def nav_to_home(self):
-        self.x_g = 0
-        self.y_g = 0
-        self.theta_g = 0
+        self.x_g = 0.0
+        self.y_g = 0.0
+        self.theta_g = 0.1
         nav_g_msg = Pose2D()
         nav_g_msg.x = self.x_g
         nav_g_msg.y = self.y_g
@@ -286,7 +289,10 @@ class Supervisor:
         elif self.mode == Mode.CROSS:
             # crossing an intersection
             if self.has_crossed():
-                self.mode = Mode.EXP_NAV
+                if self.explore:
+                    self.mode = Mode.EXP_NAV
+                else:
+                    self.mode = Mode.DEL_NAV_OBJ
             else:
                 self.nav_to_pose()
 
@@ -315,10 +321,11 @@ class Supervisor:
             rospy.loginfo("Done sleeping")
             if self.obj_idx == (self.obj_tot-1):
                 self.mode = Mode.DEL_NAV_HOME
+                self.nav_to_home()
             else:
                 self.obj_idx += 1
                 self.mode = Mode.DEL_NAV_OBJ
-                self.nav_to_obj(self.nav_to_obj(self.obj_idx))
+                self.nav_to_obj(self.obj_idx)
 
         elif self.mode == Mode.DEL_NAV_HOME:
             if self.close_to(self.x_g, self.y_g, self.theta_g):
