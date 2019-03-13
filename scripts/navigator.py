@@ -38,10 +38,13 @@ W_MAX = .4
 V_DES = 0.12
 
 # gains of the path follower
-KPX = 1.0
-KPY = 1.0
-KDX = .1
-KDY = .1
+KP = 0.5
+KD = 0.1
+
+KPX = KP
+KPY = KP
+KDX = KD
+KDY = KD
 
 # smoothing condition (see splrep documentation)
 SMOOTH = 1.0
