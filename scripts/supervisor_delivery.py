@@ -191,9 +191,9 @@ class Supervisor:
         #print("Idling")
         self.cmd_vel_publisher.publish(vel_g_msg)
 
-    def close_to(self,x,y,theta):
+    def close_to(self,x,y,theta,pos_eps, theta_eps):
         """ checks if the robot is at a pose within some threshold """
-        return (abs(x-self.x)<POS_EPS and abs(y-self.y)<POS_EPS and abs(theta-self.theta)<THETA_EPS)
+        return (abs(x-self.x)<pos_eps and abs(y-self.y)<pos_eps and abs(theta-self.theta)<theta_eps)
 
     def init_stop_sign(self):
         """ initiates a stop sign maneuver """
@@ -250,7 +250,6 @@ class Supervisor:
         mode (i.e. the finite state machine's state), if takes appropriate
         actions. This function shouldn't return anything """
 
-
         if not use_gazebo:
             try:
                 origin_frame = "/map" if mapping else "/odom"
@@ -274,7 +273,7 @@ class Supervisor:
 
         elif self.mode == Mode.EXP_POSE:
             # moving towards a desired pose
-            if self.close_to(self.x_g,self.y_g,self.theta_g):
+            if self.close_to(self.x_g,self.y_g,self.theta_g, 0.15, 0.3):
                 self.mode = Mode.EXP_IDLE
             else:
                 self.go_to_pose()
@@ -297,22 +296,18 @@ class Supervisor:
                 self.nav_to_pose()
 
         elif self.mode == Mode.EXP_NAV:
-            if self.close_to(self.x_g,self.y_g,self.theta_g):
+            if self.close_to(self.x_g,self.y_g,self.theta_g, 0.15, 0.3):
                 self.mode = Mode.EXP_IDLE
             else:
-                #rospy.loginfo("Trying to nav to %f, %f, %f", self.x_g, self.y_g, self.theta_g)
                 self.nav_to_pose()
 
-                # check idle
         elif self.mode == Mode.DEL_IDLE:
             self.stay_idle()
 
         elif self.mode == Mode.DEL_NAV_OBJ:
-            #rospy.loginfo(self.close_to(self.x_g, self.y_g, self.theta_g))
-            if self.close_to(self.x_g, self.y_g, self.theta_g):
+            if self.close_to(self.x_g, self.y_g, self.theta_g, 0.2, 1.0):
                 self.mode = Mode.DEL_PICKUP
             else:
-                #rospy.loginfo("naving to object")
                 self.nav_to_obj(self.obj_idx)
 
         elif self.mode == Mode.DEL_PICKUP:
@@ -328,7 +323,7 @@ class Supervisor:
                 self.nav_to_obj(self.obj_idx)
 
         elif self.mode == Mode.DEL_NAV_HOME:
-            if self.close_to(self.x_g, self.y_g, self.theta_g):
+            if self.close_to(self.x_g, self.y_g, self.theta_g, 0.2, 0.5):
                 self.mode = Mode.DEL_IDLE
             else:
                 self.nav_to_home()

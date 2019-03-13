@@ -23,10 +23,10 @@ END_POS_THRESH = .2
 # to recompute it
 START_POS_THRESH = .2
 
-# thereshold in theta to start moving forward when path following
-THETA_START_THRESH = 0.09
+# threshold in theta to start moving forward when path following
+THETA_START_THRESH = 0.2
 # P gain on orientation before start
-THETA_START_P = 0.5
+THETA_START_P = 0.8
 
 # maximum velocity
 V_MAX = .2
@@ -95,7 +95,7 @@ class Navigator:
         self.x_g = data.x
         self.y_g = data.y
         self.theta_g = data.theta
-        rospy.loginfo("Got nav command. About to run navigator")
+        #rospy.loginfo("Got nav command. About to run navigator")
         self.run_navigator()
 
     def map_md_callback(self, msg):
@@ -173,13 +173,13 @@ class Navigator:
             x_goal = self.snap_to_grid((self.x_g, self.y_g))
             problem = AStar(state_min,state_max,x_init,x_goal,self.occupancy,self.plan_resolution)
 
-            rospy.loginfo("Navigator: Computing navigation plan")
-            rospy.loginfo("Self at %f %f %f", self.x, self.y, self.theta)
-            rospy.loginfo("Goal is %f %f %f", self.x_g, self.y_g, self.theta_g)
+            #rospy.loginfo("Navigator: Computing navigation plan")
+            #rospy.loginfo("Self at %f %f %f", self.x, self.y, self.theta)
+            #rospy.loginfo("Goal is %f %f %f", self.x_g, self.y_g, self.theta_g)
             if problem.solve():
-                rospy.loginfo("There is a path")
+                #rospy.loginfo("There is a path")
                 if len(problem.path) > 3:
-                    rospy.loginfo("Computing splines")
+                    #rospy.loginfo("Computing splines")
                     # cubic spline interpolation requires 4 points
                     self.current_plan = problem.path
                     self.current_plan_start_time = rospy.get_rostime()
@@ -238,10 +238,10 @@ class Navigator:
 
         # if we have a path, execute it (we need at least 3 points for this controller)
         if len(self.current_plan) > 3:
-            rospy.loginfo("Executing path")
+            #rospy.loginfo("Executing path")
             # if currently not moving, first line up with the plan
             if self.V_prev == 0:
-                rospy.loginfo("Currently stopped. Trying to go to path")
+                #rospy.loginfo("Currently stopped. Trying to go to path")
                 t_path_init = (rospy.get_rostime()-self.current_plan_start_time).to_sec()
                 theta_init = np.arctan2(self.current_plan[1][1]-self.current_plan[0][1],self.current_plan[1][0]-self.current_plan[0][0])
                 theta_err = theta_init-self.theta
