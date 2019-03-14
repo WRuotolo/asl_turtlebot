@@ -17,7 +17,7 @@ def object_detected_callback(msg):
     # If new object: mark location and add to publish list
     (trans1, rot1) = trans_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
     global object_dict
-    if msg.confidence > 0.70:
+    if msg.confidence > 0.65:
         if msg.name in food_options:
             object_dict[msg.name] = (trans1, rot1)
 
