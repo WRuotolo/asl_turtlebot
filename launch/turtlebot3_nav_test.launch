@@ -11,6 +11,7 @@
   	<node pkg="asl_turtlebot" type="navigator.py" name="turtlebot_navigator" output="screen"/>
   	<node pkg="asl_turtlebot" type="vendor_locator.py" name="vendor_locator" output="screen"/>
   	<node pkg="asl_turtlebot" type="detector_viz.py" name="detector_viz" output="screen"/>
+    <node pkg="asl_turtlebot" type="visualizer.py" name="visualizer" output="screen"/>
 
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find asl_turtlebot)/rviz/nav.rviz"/>   
 

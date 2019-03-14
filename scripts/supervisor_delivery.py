@@ -135,6 +135,7 @@ class Supervisor:
 
     def delivery_request_callback(self, msg):
         self.delivery_obj_names = msg.data.split(',')
+        self.obj_idx = 0
         self.obj_tot = len(self.delivery_obj_names)
         self.mode = Mode.DEL_NAV_OBJ
         rospy.loginfo("Got delivery request")
@@ -376,9 +377,9 @@ class Supervisor:
                 self.nav_to_obj(self.obj_idx)
 
         elif self.mode == Mode.DEL_PICKUP:
-            rospy.loginfo("Sleeping")
+            rospy.loginfo("Picking up")
             time.sleep(5)
-            rospy.loginfo("Done sleeping")
+            rospy.loginfo("Done picking up")
             picked_obj = self.delivery_obj_names[self.obj_idx]
 
             if picked_obj not in self.picked_up:
