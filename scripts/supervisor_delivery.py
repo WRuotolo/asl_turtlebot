@@ -244,23 +244,23 @@ class Supervisor:
         """ initiates a stop sign maneuver """
         #print("initiating stop sign")
         self.stop_sign_start = rospy.get_rostime()
-        rospy.loginfo("init stop sign")
+        rospy.loginfo("Stopping at stop sign")
         self.mode = Mode.STOP
 
     def has_stopped(self):
         """ checks if stop sign maneuver is over """
-        rospy.loginfo("checking if stopped")
+        #rospy.loginfo("checking if stopped")
         return (self.mode == Mode.STOP and (rospy.get_rostime()-self.stop_sign_start)>rospy.Duration.from_sec(STOP_TIME))
         
     def init_crossing(self):
         """ initiates an intersection crossing maneuver """
-        rospy.loginfo("init crossing")
+        rospy.loginfo("Crossing")
         self.cross_start = rospy.get_rostime()
         self.mode = Mode.CROSS
 
     def has_crossed(self):
         """ checks if crossing maneuver is over """
-        rospy.loginfo("check crossed")
+        #rospy.loginfo("check crossed")
         return (self.mode == Mode.CROSS and (rospy.get_rostime()-self.cross_start)>rospy.Duration.from_sec(CROSSING_TIME))
 
     def nav_to_obj(self, idx):
@@ -305,7 +305,7 @@ class Supervisor:
     	(translation, rotation) = self.trans_listener.lookupTransform("/map","/base_footprint",t)
     	th_goal = tf.transformations.euler_from_quaternion(rotation)[2]
     	self.theta_g = th_goal + delta_theta - 0.3
-    	rospy.loginfo("Curent theta %f goal theta %f", self.theta, self.theta_g)
+    	#rospy.loginfo("Curent theta %f goal theta %f", self.theta, self.theta_g)
     	self.x_g = translation[0]+0.1*np.cos(self.theta_g)
     	self.y_g = translation[1]+0.1*np.sin(self.theta_g)
     	self.go_to_pose()
@@ -329,7 +329,7 @@ class Supervisor:
 
         # logs the current mode
         if not(self.last_mode_printed == self.mode):
-            rospy.loginfo("EXPLORE: Current Mode: %s", self.mode)
+            rospy.loginfo("Current Mode: %s", self.mode)
             self.last_mode_printed = self.mode
 
         # checks wich mode it is in and acts accordingly
