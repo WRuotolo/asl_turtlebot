@@ -32,6 +32,7 @@
 import rospy
 
 from geometry_msgs.msg import Twist
+from std_msgs.msg import String
 
 import sys, select, termios, tty
 
@@ -94,6 +95,7 @@ if __name__=="__main__":
     
     rospy.init_node('turtlebot_teleop')
     pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
+    teleop_pub = rospy.Publisher('/teleop_cmd', String, queue_size=10)
 
     x = 0
     th = 0
@@ -166,6 +168,7 @@ if __name__=="__main__":
                 twist = Twist()
                 twist.linear.x = control_speed; twist.linear.y = 0; twist.linear.z = 0
                 twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = control_turn
+                teleop_pub.publish('Edited publish')
                 pub.publish(twist)
 
             # Might want this line or not, depends on stability of cmd received

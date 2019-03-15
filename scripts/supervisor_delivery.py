@@ -24,13 +24,13 @@ POS_EPS = .15
 THETA_EPS = .3
 
 # time to stop at a stop sign
-STOP_TIME = 10
+STOP_TIME = 8
 
 # minimum distance from a stop sign to obey it
 STOP_MIN_DIST = .5
 
 # time taken to cross an intersection
-CROSSING_TIME = 3
+CROSSING_TIME = 4
 
 # dog
 distance, cornerx, cornery, cornerdx, cornerdy = 0.0, 0.0, 0.0, 0.0, 0.0
@@ -310,8 +310,8 @@ class Supervisor:
     	th_goal = tf.transformations.euler_from_quaternion(rotation)[2]
     	self.theta_g = th_goal + delta_theta - 0.3
     	#rospy.loginfo("Curent theta %f goal theta %f", self.theta, self.theta_g)
-    	self.x_g = translation[0]+0.1*np.cos(self.theta_g)
-    	self.y_g = translation[1]+0.1*np.sin(self.theta_g)
+    	self.x_g = translation[0]+0.2*np.cos(self.theta_g)
+    	self.y_g = translation[1]+0.2*np.sin(self.theta_g)
     	self.go_to_pose()
 
 
@@ -415,7 +415,7 @@ class Supervisor:
 
         elif self.mode == Mode.FOLLOW_DOG:
         	if self.explore:
-	        	if (rospy.get_rostime()-self.following_init_time)>rospy.Duration.from_sec(2):
+	        	if (rospy.get_rostime()-self.following_init_time)>rospy.Duration.from_sec(1):
 	        		self.mode = Mode.EXP_IDLE
 	        		rospy.loginfo("Stopping following")
 	        	else:
