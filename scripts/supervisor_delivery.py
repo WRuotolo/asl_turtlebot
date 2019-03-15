@@ -82,6 +82,10 @@ class Supervisor:
         self.nav_goal_publisher = rospy.Publisher('/cmd_nav', Pose2D, queue_size=10)
         # command vel (used for idling)
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        #publisher for rviz status
+        self.status_publisher = rospy.Publisher('/status', String, queue_size=10)
+        #publisher for emergency stop
+        self.nav_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
         self.explore = True
 
@@ -109,7 +113,7 @@ class Supervisor:
         rospy.Subscriber('/detector/cat', DetectedObject, self.dogCallback)
         rospy.Subscriber('/detector/dog', DetectedObject, self.dogCallback)
         rospy.Subscriber('/emergency_stop', Bool, self.estopCallback)
-        self.nav_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        
 
     def estopCallback(self, msg):
 
@@ -331,6 +335,11 @@ class Supervisor:
         if not(self.last_mode_printed == self.mode):
             rospy.loginfo("Current Mode: %s", self.mode)
             self.last_mode_printed = self.mode
+            if self.mode == Mode.DEL_NAV_OBJ:
+                self.status_publisher.publish('Going to pick up ' + str(self.delivery_obj_names[self.obj_idx]))
+            else:
+                self.status_publisher.publish(str(self.mode))
+
 
         # checks wich mode it is in and acts accordingly
         if self.mode == Mode.EXP_IDLE:
@@ -378,7 +387,8 @@ class Supervisor:
 
         elif self.mode == Mode.DEL_PICKUP:
             rospy.loginfo("Picking up")
-            time.sleep(5)
+            self.status_publisher.publish('Picking up ' + str(self.delivery_obj_names[self.obj_idx]))
+            time.sleep(10)
             rospy.loginfo("Done picking up")
             picked_obj = self.delivery_obj_names[self.obj_idx]
 

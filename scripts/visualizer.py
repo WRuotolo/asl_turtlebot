@@ -42,6 +42,50 @@ def picked_callback(msg):
 
     picked_pub.publish(marker_array)
 
+def status_callback(msg):
+	status_mode = msg.data
+
+	if status_mode == 'Mode.EXP_IDLE':
+		status = 'Idling while exploring'
+	elif status_mode == 'Mode.EXP_NAV':
+		status = 'Exploring...'
+	elif status_mode == 'Mode.STOP':
+		status = 'Stopped at stop sign'
+	elif status_mode == 'Mode.CROSS':
+		status = 'Crossing intersection'
+	elif status_mode == 'Mode.DEL_IDLE':
+		status = 'Waiting for delivery request'
+	elif status_mode == 'Mode.DEL_PICKUP':
+		status = 'Picking up object'
+	elif status_mode == 'Mode.DEL_NAV_HOME':
+		status = 'Delivering food to home'
+	elif status_mode == 'Mode.FOLLOW_DOG':
+		status = 'I am distracted...following a cute animal'
+	else:
+		status = status_mode
+
+
+	#text status
+	statusMarker = Marker()
+	statusMarker.id = 10
+	statusMarker.type = statusMarker.TEXT_VIEW_FACING
+	statusMarker.header.frame_id = '/map'
+	statusMarker.scale.z = 0.3
+	statusMarker.pose.position.x = 2
+	statusMarker.pose.position.y = 4
+	statusMarker.pose.position.z = 0
+	statusMarker.pose.orientation.x = 0
+	statusMarker.pose.orientation.y = 0
+	statusMarker.pose.orientation.z = 0
+	statusMarker.pose.orientation.w = 1
+	statusMarker.color.r = 0.0
+	statusMarker.color.g = 1.0
+	statusMarker.color.b = 0.0
+	statusMarker.color.a = 0.75
+	statusMarker.text = status
+	status_pub.publish(statusMarker)
+
+
 if __name__ == '__main__':
     rospy.init_node('visualizer')
     rate = rospy.Rate(10)
@@ -62,6 +106,8 @@ if __name__ == '__main__':
     vendor_pub = rospy.Publisher('/vendor_markers', MarkerArray, queue_size = 1)
 
     picked_sub = rospy.Subscriber('/picked_up', String, picked_callback)
+    status_msg = rospy.Subscriber('/status', String, status_callback)
+    status_pub = rospy.Publisher('status_marker', Marker, queue_size = 1)
 
     while not rospy.is_shutdown():
         marker_array = MarkerArray()
@@ -121,4 +167,6 @@ if __name__ == '__main__':
                 continue
 
         vendor_pub.publish(marker_array)
+
+
 
